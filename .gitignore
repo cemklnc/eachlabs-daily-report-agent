@@ -1,0 +1,41 @@
+# -------------------- SECRETS (NEVER COMMIT) --------------------
+.env
+.env.*
+!.env.example
+service-account*.json
+credentials*.json
+*-credentials.json
+.slack_token
+tokens/
+secrets/
+
+# -------------------- Python --------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# -------------------- Generated data --------------------
+# Reports are transient — built in temp dirs and uploaded to Drive
+*.xlsx
+reports/
+runtime/
+tmp/
+state/
+last_run.json
+
+# -------------------- Logs --------------------
+*.log
+logs/
+
+# -------------------- OS --------------------
+.DS_Store
+Icon?
+Thumbs.db
+._*
