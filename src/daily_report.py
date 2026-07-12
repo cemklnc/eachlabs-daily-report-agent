@@ -76,6 +76,10 @@ def load_raw(src_path: Path) -> pd.DataFrame:
     for col in ["execution_count", "total_revenue", "total_provider_cost", "total_margin"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        else:
+            # Upstream export occasionally lags on cost/margin sync.
+            # Default to 0 rather than crash the whole pipeline.
+            df[col] = 0.0
     return df
 
 
