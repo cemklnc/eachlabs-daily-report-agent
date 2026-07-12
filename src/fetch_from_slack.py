@@ -37,26 +37,22 @@ def _http(url: str, *, token: str | None = None, raw: bool = False):
     raise last_error
 
 
-def _is_scheduled_run(message: dict) -> bool:
-    """Only trust the automatic daily bot post, not manual/on-demand re-runs.
-
-    The bot's own fallback text (and blocks) contain "triggered by schedule"
-    for the real cron-fired post, vs "triggered by @some-user" for manual runs.
-    We check the whole serialized message defensively since Block Kit messages
-    put the readable text in nested blocks, not always the top-level `text` field.
-    """
-    blob = json.dumps(message).lower()
-    return "triggered by schedule" in blob
-
-
 def _find_latest_csv(token: str, channel_id: str) -> dict | None:
+    """Return the newest file in the channel matching execution_report_YYYY-MM-DD.csv.
+
+    Note: the bot posts several messages per run (a "generating..." notice, a
+    revenue summary, etc.) before the message that actually carries the CSV
+    file. The trigger annotation ("triggered by schedule" vs a manual mention)
+    lives on those earlier companion messages, not on the file-bearing message
+    itself — so we intentionally do NOT filter on that text here. We just take
+    the most recent matching file, since conversations.history returns
+    messages newest-first.
+    """
     params = urllib.parse.urlencode({"channel": channel_id, "limit": 50})
     resp = _http(f"{SLACK_API}/conversations.history?{params}", token=token)
     if not resp.get("ok"):
         raise RuntimeError(f"Slack conversations.history failed: {resp.get('error')}")
     for m in resp.get("messages", []):
-        if not _is_scheduled_run(m):
-            continue
         for f in m.get("files", []) or []:
             if FILE_PATTERN.match(f.get("name", "")):
                 return f
