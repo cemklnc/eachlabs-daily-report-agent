@@ -35,6 +35,7 @@ from notify_slack import send_message                  # noqa: E402
 
 REQUIRED_ENV = [
     "SLACK_USER_TOKEN",
+    "SLACK_BOT_TOKEN",
     "SLACK_CHANNEL_ID",
     "GDRIVE_FOLDER_ID",
 ]
@@ -61,7 +62,8 @@ def main() -> int:
         print(str(e))
         return 3
 
-    slack_token = os.environ["SLACK_USER_TOKEN"]
+    slack_token = os.environ["SLACK_USER_TOKEN"]        # reads Slack history/files
+    slack_bot_token = os.environ["SLACK_BOT_TOKEN"]      # posts as the bot, not personal account
     slack_channel = os.environ["SLACK_CHANNEL_ID"]
     drive_folder = os.environ["GDRIVE_FOLDER_ID"]
 
@@ -120,7 +122,7 @@ def main() -> int:
             f"<{file_link}|Open report>"
         )
         try:
-            result = send_message(slack_channel, message, slack_token)
+            result = send_message(slack_channel, message, slack_bot_token)
         except Exception as e:
             print(f"  ERROR: Slack post failed: {type(e).__name__}: {e}")
             traceback.print_exc()
