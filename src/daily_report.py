@@ -1329,7 +1329,7 @@ def main(base_dir: Path):
         sys.exit(4)
 
 
-EXCLUDED_ORGS = {"Eachlabs Workflows", "each::blackbox::models"}
+EXCLUDED_ORGS = {"each::blackbox::models"}
 
 
 def split_excluded_orgs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
