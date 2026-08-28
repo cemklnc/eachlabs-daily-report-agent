@@ -1127,7 +1127,7 @@ def write_raw_sheet(ws, raw: pd.DataFrame, table_name: str = "RawData") -> None:
         ws.column_dimensions[letter].width = width
 
 
-def build_report(daily: pd.DataFrame, raw: pd.DataFrame, out_path: Path, source_name: str) -> Path:
+def build_report(daily: pd.DataFrame, raw: pd.DataFrame, out_path: Path, source_name: str, raw_excluded: pd.DataFrame | None = None) -> Path:
     movers_up, movers_down, today, yesterday = compute_movers(daily)
     first_time = compute_first_time_today(daily)
     drop_offs = compute_drop_offs(daily)
@@ -1209,6 +1209,21 @@ def build_report(daily: pd.DataFrame, raw: pd.DataFrame, out_path: Path, source_
 
     write_raw_sheet(wb.create_sheet("Raw"), raw)
 
+    # Excluded-orgs mini report (internal/test orgs, kept out of every metric above)
+    if raw_excluded is not None and not raw_excluded.empty:
+        daily_excluded = org_daily_spend(raw_excluded)
+        excluded_mtd_pivot = build_mtd_pivot(daily_excluded)
+        excluded_monthly_pivot = build_monthly_pivot(daily_excluded, MONTHLY_PIVOT_MONTHS)
+        write_pivot_sheet(
+            wb.create_sheet("Excluded orgs - MTD"),
+            f"Trailing {MTD_WINDOW_DAYS}-day spend \u2014 internal orgs",
+            excluded_mtd_pivot,
+        )
+        write_pivot_sheet(
+            wb.create_sheet("Excluded orgs - Monthly"),
+            f"Monthly spend (last {MONTHLY_PIVOT_MONTHS} months) \u2014 internal orgs",
+            excluded_monthly_pivot,
+        )
     # Source provenance sheet
     prov = wb.create_sheet("Source")
     prov["A1"] = "Source provenance"
@@ -1314,19 +1329,33 @@ def main(base_dir: Path):
         sys.exit(4)
 
 
+EXCLUDED_ORGS = {"Eachlabs Workflows", "each::blackbox::models"}
+
+
+def split_excluded_orgs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split a dataframe into (kept, excluded) based on EXCLUDED_ORGS.
+    Internal/test organizations are pulled out of every main-report metric
+    and surfaced separately in their own dedicated tabs instead."""
+    if df.empty or "organization_name" not in df.columns:
+        return df, df.iloc[0:0]
+    mask = df["organization_name"].isin(EXCLUDED_ORGS)
+    return df[~mask].copy(), df[mask].copy()
+
+
 def build_report_from_csv(csv_path: Path, out_dir: Path) -> tuple[Path, str]:
     """Cloud-friendly entry point. Reads a single CSV, builds the report xlsx,
     writes it to out_dir, returns (output_path, report_date_string).
 
     No inbox/archive/state side effects. Safe to call in a temp directory.
     """
-    raw = load_raw(csv_path)
+    raw_all = load_raw(csv_path)
+    raw, raw_excluded = split_excluded_orgs(raw_all)
     daily = org_daily_spend(raw)
     today = daily["execution_date"].max()
     report_date = today.strftime("%Y-%m-%d") if today is not pd.NaT else "unknown"
     out_path = out_dir / f"eachlabs daily report {report_date}.xlsx"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    build_report(daily, raw, out_path, source_name=csv_path.name)
+    build_report(daily, raw, out_path, source_name=csv_path.name, raw_excluded=raw_excluded)
     return out_path, report_date
 
 
