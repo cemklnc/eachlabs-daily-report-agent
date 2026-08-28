@@ -4,7 +4,7 @@ on:
   # 04:00 UTC = 07:00 Europe/Istanbul (Turkey is fixed UTC+3, no DST since 2016).
   # Change this if you want a different time — always express in UTC.
   schedule:
-    - cron: '7 1 * * *'
+    - cron: '44 2 * * *'
   # Allow manual runs from the Actions tab
   workflow_dispatch:
 
