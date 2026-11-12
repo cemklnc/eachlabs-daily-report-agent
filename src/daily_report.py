@@ -73,6 +73,11 @@ def load_raw(src_path: Path) -> pd.DataFrame:
     df["execution_date"] = pd.to_datetime(df["execution_date"]).dt.normalize()
     df = df.dropna(subset=["organization_name", "execution_date"])
     df["organization_name"] = df["organization_name"].astype(str).str.strip()
+    # New export schema: total_revenue was replaced by gross/net revenue.
+    if "total_revenue" not in df.columns and "net_revenue" in df.columns:
+        df["total_revenue"] = df["net_revenue"]
+    if "total_revenue" not in df.columns:
+        raise ValueError(f"No revenue column found. Columns: {list(df.columns)}")
     for col in ["execution_count", "total_revenue", "total_provider_cost", "total_margin"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
